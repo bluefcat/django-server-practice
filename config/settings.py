@@ -82,7 +82,12 @@ DATABASES = {
         'USER': 'mobo',
         'PASSWORD': 'mobo',
         'HOST': 'mysql_container',
-        'PORT': '3306'
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8',
+            'use_unicode': True
+        }
     }
 }
 
