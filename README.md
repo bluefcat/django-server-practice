@@ -2,17 +2,25 @@
 - docker >= 1.12.0
 - docker-compose >= 1.6.0
 
-## 실행
+## 처음 실행
 
 ```
 docker-compose up
 ```
 
-- django 도커 내부에서
-
 ```shell
+"indocker"
+python manage.py makemigrations <APPNAME>
 python manage.py migrate
+
+or
+
+"shell"
+docker -it exec <django container> python manage.py makemigrations <APPNAME>
+docker -it exec <django container> python manage.py migrate
 ```
+
+
 
 ## 모델이 업데이트 되었을 떄
 
