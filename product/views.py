@@ -1,23 +1,68 @@
 from django.shortcuts import render
+from rest_framework.response import Response
+from rest_framework import status, mixins
+from rest_framework import generics # generics class-based view 사용할 계획
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
-# Create your views here.
-from django.shortcuts import render
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework_jwt.serializers import VerifyJSONWebTokenSerializer
 
+from .serializers import MemberSerializer, MemberRegisterSerializer, MemberLoginSerializer
 from .models import Member
 
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+# Create your views here.
 
-from .serializers import MemberSerializer
+# 누구나 접근 가능
+@permission_classes([AllowAny]) 
+class Registration(generics.GenericAPIView):
+    serializer_class = MemberRegisterSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=True):
+            return Response({"message": "Request Body Error."}, status=status.HTTP_409_CONFLICT)
+
+        serializer.is_valid(raise_exception=True)
+
+        member = serializer.save(request) # request 필요 -> 오류 발생
+
+        return Response(
+            {
+            # get_serializer_context: serializer에 포함되어야 할 어떠한 정보의 context를 딕셔너리 형태로 리턴
+            # 디폴트 정보 context는 request, view, format
+                "member": MemberSerializer(
+                    member, context=self.get_serializer_context()
+                ).data
+            },
+                status=status.HTTP_201_CREATED,
+        )
+
+@permission_classes([AllowAny])
+class Login(generics.GenericAPIView):
+    serializer_class = MemberLoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        
+        if not serializer.is_valid(raise_exception=True):
+            return Response({"message": "Request Body Error."}, status=status.HTTP_409_CONFLICT)
+
+        serializer.is_valid(raise_exception=True)
+        member = serializer.validated_data
+        if member['username'] == "None":
+            return Response({"message": "fail"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response(
+            {
+                "member": MemberLoginSerializer(
+                    member, context=self.get_serializer_context()
+                ).data
+            }
+        )
 
 #멤버 리스트를 위한 API
-class MemberListAPI(APIView):
-    @permission_classes((IsAuthenticated, ))
-    @authentication_classes((JSONWebTokenAuthentication,))
+class MemberListAPI(generics.GenericAPIView):
     def get(self, request):
         queryset = Member.objects.all()
         serializer = MemberSerializer(queryset, many=True)
@@ -42,23 +87,23 @@ class MemberListAPI(APIView):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #단일 멤버를 위한 API
-class MemberAPI(APIView):
-    def get(self, request, uid):
-        queryset = Member.objects.get(uid=uid)
+class MemberAPI(generics.GenericAPIView):
+    def get(self, request, username):
+        queryset = Member.objects.get(username=username)
         serializer = MemberSerializer(queryset)
         return Response(serializer.data, status=200)
 
-    def post(self, request, uid):
+    def post(self, request, username):
         #없는 메소드
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def put(self, request, uid): 
+    def put(self, request, username): 
         #예외처리하기 key값이 없는거라던가
-        Member.objects.filter(uid=uid).update(**request.data)
+        Member.objects.filter(username=username).update(**request.data)
 
         return Response(status=200)
 
-    def delete(self, request, uid):
+    def delete(self, request, username):
         #실제로 데이터를 없애진 말자
-        Member.objects.filter(uid=uid).update(inactive=True)
+        Member.objects.filter(username=username).update(inactive=True)
         return Response(status=200)

@@ -38,10 +38,25 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'product',
+    'django.contrib.sites',
     'rest_framework',
-    'rest_framework_jwt'
+    'rest_framework_jwt',
+    'allauth',
+    'allauth.account',
+    'rest_auth',
+    'rest_framework.authtoken',
+    'rest_auth.registration',
+    'allauth.socialaccount',
+    'product',
 ]
+
+#AUTH_USER_MODEL = 'YourAppName.YourClassName'
+AUTH_USER_MODEL = 'product.Member'
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'product.serializers.MemberRegisterSerializer',
+}
+ACCOUNT_ADAPTER = 'product.adapter.MemberAccountAdapter'
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -58,14 +73,20 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.contrib.messages.context_processors.messages',
+                'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.i18n',
+                # Required by allauth template tags
+                "django.template.context_processors.request",
+                # allauth specific context processors
+                #'allauth.account.context_processors.account',
+                #'allauth.socialaccount.context_processors.socialaccount',
             ],
         },
     },
@@ -96,6 +117,8 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
+
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {

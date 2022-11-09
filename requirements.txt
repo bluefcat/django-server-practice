@@ -6,3 +6,6 @@ mysqlclient
 djangorestframework
 djangorestframework-jwt
 django-filter
+Pillow
+django-rest-auth
+django-allauth
