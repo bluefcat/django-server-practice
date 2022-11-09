@@ -7,3 +7,13 @@
 ```
 docker-compose up
 ```
+
+## 오류해결
+
+
+- "python/r" 을 찾을 수 없다는 오류
+  - CRLF, LF 문제니 git 설정을 아래와 같이 바꿀 것
+  - 그리고 모든 파일의 포맷을 LF 포맷으로 바꿀 것
+```
+git config --get core.eol
+```
