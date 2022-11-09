@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import datetime
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'product',
-    'rest_framework'
+    'rest_framework',
+    'rest_framework_jwt'
 ]
 
 MIDDLEWARE = [
@@ -109,6 +111,35 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# FOR JWT Framework
+REST_FRAMEWORK = {
+    #로그인 여부를 확인하는 클래스는 rest_framework.permission.IsAutheticated다.
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+
+    #로그인 관련 클래스
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
+
+#인증의 관한 설정
+JWT_AUTH = {
+    #비밀키의 관한 설정
+    'JWT_SECRET_KEY': SECRET_KEY,
+    #JWT 암호화
+    'JWT_ALGORITHM': 'HS256',
+    #JWT 갱신여부
+    'JWT_ALLOW_REFRESH': True,
+    #JWT 토큰 유효기간
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    # 토큰 갱신 최대 유효기간
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=28),
+}
 
 
 # Internationalization

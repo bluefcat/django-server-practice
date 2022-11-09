@@ -8,12 +8,16 @@ from .models import Member
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from .serializers import MemberSerializer
 
 #멤버 리스트를 위한 API
 class MemberListAPI(APIView):
+    @permission_classes((IsAuthenticated, ))
+    @authentication_classes((JSONWebTokenAuthentication,))
     def get(self, request):
         queryset = Member.objects.all()
         serializer = MemberSerializer(queryset, many=True)
