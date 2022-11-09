@@ -8,6 +8,22 @@
 docker-compose up
 ```
 
+- django 도커 내부에서
+
+```shell
+python manage.py migrate
+```
+
+## 모델이 업데이트 되었을 떄
+
+- django 도커 내부에서 아래 명령어 사용하기
+
+```shell
+python manage.py makemigrations <APPNAME>
+python manage.py migrate
+```
+
+
 ## 오류해결
 
 
