@@ -6,7 +6,7 @@ from django.contrib.auth.models import update_last_login
 from django.contrib.auth import authenticate
 from rest_auth.registration.serializers import RegisterSerializer
 
-from .models import Member
+from .models import Member, Subscribe
 
 # JWT 사용을 위한 설정
 JWT_PAYLOAD_HANDLER = api_settings.JWT_PAYLOAD_HANDLER
@@ -61,4 +61,10 @@ class MemberLoginSerializer(serializers.Serializer):
 class MemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member
+        fields = "__all__"
+
+
+class SubscribeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscribe
         fields = "__all__"

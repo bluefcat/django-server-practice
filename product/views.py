@@ -8,9 +8,10 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.serializers import VerifyJSONWebTokenSerializer
 
-from .serializers import MemberSerializer, MemberRegisterSerializer, MemberLoginSerializer
-from .models import Member
-
+from .serializers import MemberRegisterSerializer, MemberLoginSerializer, MemberSerializer, SubscribeSerializer
+from .models import Member, Subscribe
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 # Create your views here.
 
 # 누구나 접근 가능
@@ -63,6 +64,8 @@ class Login(generics.GenericAPIView):
 
 #멤버 리스트를 위한 API
 class MemberListAPI(generics.GenericAPIView):
+    serializer_class = MemberSerializer
+
     def get(self, request):
         """
         API형식
@@ -112,6 +115,8 @@ class MemberListAPI(generics.GenericAPIView):
 
 #단일 멤버를 위한 API
 class MemberAPI(generics.GenericAPIView):
+    serializer_class = MemberSerializer
+
     def get(self, request, username):
         queryset = Member.objects.get(username=username)
         serializer = MemberSerializer(queryset)
@@ -129,5 +134,90 @@ class MemberAPI(generics.GenericAPIView):
 
     def delete(self, request, username):
         #실제로 데이터를 없애진 말자
-        Member.objects.filter(username=username).update(inactive=True)
+        Member.objects.filter(username=username).update(is_active=False)
         return Response(status=200)
+
+#구독 리스트를 위한 API
+@permission_classes([AllowAny])
+class SubscribeListAPI(generics.GenericAPIView):
+    serializer_class = SubscribeSerializer
+    queryset = ""
+
+    def get(self, request, username):
+        """
+        API형식
+        GET /members?
+                     query=<table id>&           기준 정렬은 없는 것이 기본
+                     asc=<int:0, 1::default=0>&  내림차순이 기본
+                     offset=<int::default=0>&    0번 부터 불러오는 것이 기본
+                     limit=<int::default = 10>   최대 10까지 불러오는 것이 기본
+        """
+
+        #정렬관련 쿼리 
+        #?query=username&asc=0&offset=0&limit=3
+        #정렬할 대상
+        query = request.GET.get('query', None)                              
+        #오름차순 내림차순
+        asc =  "" if int(request.GET.get('asc', 0)) else "-"     
+
+        offset = int(request.GET.get('offset', 0))
+        limit = int(request.GET.get('limit', 10))
+
+        #해당하는 유저를 찾는다.
+        member = Member.objects.get(username=username)
+        member = MemberSerializer(member).data
+
+        queryset = Subscribe.objects.all()
+        queryset = queryset.filter(member_id=member.get("id", None))
+
+        if query is not None:
+            queryset = queryset.order_by(f"{asc}{query}")[offset:offset+limit]
+
+        serializer = SubscribeSerializer(queryset, many=True)
+        return Response(serializer.data, status=200)
+
+    def post(self, request, username):
+        #요청한 유저를 찾는다.
+        member = Member.objects.get(username=username)
+        member = MemberSerializer(member).data
+
+        next_purchase_date = datetime.now()
+
+        now = datetime.now()
+        pmonth = int(request.data.get("purchase_month", 0))
+        pday = int(request.data.get("purchase_date", 0))
+
+        #이미 지난날이면
+        if now.day >= pday:
+            next_purchase_date = datetime.now() + relativedelta(months=pmonth)
+
+        next_purchase_date = next_purchase_date.replace(day=pday)
+
+        #왜 이렇게 이중으로 바꿔야 하는지 이해를 못함
+        data = {k: v for k, v in request.data.items()}
+
+        data["icon"] = None
+        data["member"] = member.get("id", None)
+        data["next_purchase_date"] = next_purchase_date.date().strftime('%Y-%m-%d')
+        data["sum_price"] =0
+        
+        serializer = SubscribeSerializer(data=data)
+        serializer.member = member.get("id", None)
+        serializer.next_purchase_date = next_purchase_date.date().strftime('%Y-%m-%d')
+        serializer.sum_price = 0
+
+        #유효성 확인
+        if(not serializer.is_valid()):
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+
+        return Response(serializer.data, status=201)
+
+    def put(self, request, username):
+        #없는 메소드
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def delete(self, request, username):
+        #없는 메소드
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
