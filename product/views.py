@@ -64,7 +64,31 @@ class Login(generics.GenericAPIView):
 #멤버 리스트를 위한 API
 class MemberListAPI(generics.GenericAPIView):
     def get(self, request):
+        """
+        API형식
+        GET /members?
+                     query=<table id>&           기준 정렬은 없는 것이 기본
+                     asc=<int:0, 1::default=0>&  내림차순이 기본
+                     offset=<int::default=0>&    0번 부터 불러오는 것이 기본
+                     limit=<int::default = 10>   최대 10까지 불러오는 것이 기본
+        """
+
+        #정렬관련 쿼리 
+        #?query=username&asc=0&offset=0&limit=3
+        #정렬할 대상
+        query = request.GET.get('query', None)                              
+        #오름차순 내림차순
+        asc =  "" if int(request.GET.get('asc', 0)) else "-"     
+
+        offset = int(request.GET.get('offset', 0))
+        limit = int(request.GET.get('limit', 10))
+
         queryset = Member.objects.all()
+        queryset = queryset.filter(is_active=True)
+
+        if query is not None:
+            queryset = queryset.order_by(f"{asc}{query}")[offset:offset+limit]
+
         serializer = MemberSerializer(queryset, many=True)
         return Response(serializer.data, status=200)
 
