@@ -23,6 +23,10 @@ services:
 
     ports:
       - '3306:3306'
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 1s
+      retries: 10
 
   django:
     container_name: django_container
@@ -35,7 +39,8 @@ services:
     environment:
      - DJANGO_DB_HOST=db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
     ports:
       - 8000:8000
