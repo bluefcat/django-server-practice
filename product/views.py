@@ -8,10 +8,14 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.serializers import VerifyJSONWebTokenSerializer
 
-from .serializers import MemberRegisterSerializer, MemberLoginSerializer, MemberSerializer, SubscribeSerializer
-from .models import Member, Subscribe
+
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+
+from .serializers import MemberRegisterSerializer, MemberLoginSerializer, MemberSerializer, SubscribeSerializer
+from .models import Member, Subscribe
+from .utils import process_filter, process_sorted
+
 # Create your views here.
 
 # 누구나 접근 가능
@@ -63,8 +67,10 @@ class Login(generics.GenericAPIView):
         )
 
 #멤버 리스트를 위한 API
+@permission_classes([AllowAny])
 class MemberListAPI(generics.GenericAPIView):
     serializer_class = MemberSerializer
+    queryset = ""
 
     def get(self, request):
         """
@@ -75,23 +81,17 @@ class MemberListAPI(generics.GenericAPIView):
                      offset=<int::default=0>&    0번 부터 불러오는 것이 기본
                      limit=<int::default = 10>   최대 10까지 불러오는 것이 기본
         """
-
-        #정렬관련 쿼리 
-        #?query=username&asc=0&offset=0&limit=3
-        #정렬할 대상
-        query = request.GET.get('query', None)                              
-        #오름차순 내림차순
-        asc =  "" if int(request.GET.get('asc', 0)) else "-"     
-
-        offset = int(request.GET.get('offset', 0))
-        limit = int(request.GET.get('limit', 10))
-
         queryset = Member.objects.all()
-        queryset = queryset.filter(is_active=True)
-
-        if query is not None:
-            queryset = queryset.order_by(f"{asc}{query}")[offset:offset+limit]
-
+        queryset = process_filter(request, queryset, 
+            is_active=("__is_active", bool, True)
+        )
+        queryset = process_sorted(request, queryset,
+            target=[
+                ("query", None, "asc", False),
+            ],
+            offset=0,                               
+            limit=10,
+        )
         serializer = MemberSerializer(queryset, many=True)
         return Response(serializer.data, status=200)
 
@@ -156,22 +156,26 @@ class SubscribeListAPI(generics.GenericAPIView):
         #정렬관련 쿼리 
         #?query=username&asc=0&offset=0&limit=3
         #정렬할 대상
-        query = request.GET.get('query', None)                              
-        #오름차순 내림차순
-        asc =  "" if int(request.GET.get('asc', 0)) else "-"     
-
-        offset = int(request.GET.get('offset', 0))
-        limit = int(request.GET.get('limit', 10))
+        #query = request.GET.get('query', None)                              
 
         #해당하는 유저를 찾는다.
         member = Member.objects.get(username=username)
         member = MemberSerializer(member).data
 
         queryset = Subscribe.objects.all()
-        queryset = queryset.filter(member_id=member.get("id", None))
-
-        if query is not None:
-            queryset = queryset.order_by(f"{asc}{query}")[offset:offset+limit]
+        #filter processing
+        queryset = process_filter(request, queryset, 
+            member_id=("__member_id", int, member.get("id", None)),
+            id=("id", int, None)
+        )
+        queryset = process_sorted(request, queryset,
+            target=[
+                ("target1", None, "rev1", False),   #target1 기준 정렬, 오름차순
+                ("target2", None, "rev2", False),   #target2 기준 정렬, 내림차순
+            ],
+            offset=0,                               #조회페이지 디폴트값
+            limit=10,
+        )
 
         serializer = SubscribeSerializer(queryset, many=True)
         return Response(serializer.data, status=200)
